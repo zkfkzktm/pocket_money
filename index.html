@@ -1,0 +1,707 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>용돈통장</title>
+<meta name="theme-color" content="#E9EFE7">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="용돈통장">
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="apple-touch-icon" href="./icons/icon-180.png">
+<link rel="icon" href="./icons/icon-32.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=Gowun+Dodum&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#E9EFE7; --card:#FBFDFA; --card-2:#F2F6F0;
+  --ink:#1C2620; --ink-2:#5A6A61; --ink-3:#8A968E;
+  --rule:#CBD8CB; --rule-2:#DFE8DE;
+  --seal:#BE3A2B; --seal-bg:#F7E6E3;
+  --mint:#2A7A57;
+  --sans:'Gowun Dodum',system-ui,sans-serif;
+  --serif:'Gowun Batang',serif;
+  --mono:'IBM Plex Mono',ui-monospace,monospace;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0}
+body{
+  background:var(--paper); color:var(--ink); font-family:var(--sans);
+  font-size:16px; line-height:1.6; -webkit-font-smoothing:antialiased;
+}
+#app{max-width:480px;margin:0 auto;padding:0 16px calc(84px + env(safe-area-inset-bottom));min-height:100vh}
+button{font:inherit;color:inherit;cursor:pointer;border:none;background:none}
+input,select{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--seal);outline-offset:2px;border-radius:4px}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+/* ---- 상단 ---- */
+.top{display:flex;align-items:center;gap:8px;padding:18px 0 12px}
+.kids{display:flex;gap:6px;flex:1;min-width:0}
+.kid{
+  padding:7px 14px;border-radius:999px;border:1px solid var(--rule);
+  background:transparent;color:var(--ink-2);font-size:14px;white-space:nowrap
+}
+.kid[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--paper)}
+.datenav{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.datenav b{font-family:var(--serif);font-size:19px;font-weight:700}
+.datenav small{display:block;font-family:var(--sans);font-size:12px;color:var(--ink-3);font-weight:400}
+.arrow{width:36px;height:36px;border-radius:50%;border:1px solid var(--rule);
+  display:flex;align-items:center;justify-content:center;font-size:16px;color:var(--ink-2)}
+.arrow[disabled]{opacity:.3;cursor:default}
+
+/* ---- 할 일 ---- */
+.task{
+  display:flex;align-items:center;gap:12px;background:var(--card);
+  border:1px solid var(--rule-2);border-radius:12px;padding:12px 14px;margin-bottom:8px
+}
+.task .emo{font-size:20px;width:26px;text-align:center;flex-shrink:0}
+.task .body{flex:1;min-width:0}
+.task .nm{font-size:15px;line-height:1.3}
+.task .sub{font-size:12px;color:var(--ink-3);font-family:var(--mono)}
+.task.done .nm{color:var(--ink)}
+.count{display:flex;align-items:center;gap:2px;flex-shrink:0}
+.step{
+  width:38px;height:38px;border-radius:10px;border:1px solid var(--rule);
+  display:flex;align-items:center;justify-content:center;font-size:19px;color:var(--ink-2);
+  background:var(--card-2)
+}
+.step:active{transform:scale(.94)}
+.step[disabled]{opacity:.28;cursor:default}
+.num{
+  width:34px;text-align:center;font-family:var(--mono);font-size:17px;font-weight:500;
+  font-variant-numeric:tabular-nums
+}
+.amt{font-family:var(--mono);font-size:14px;min-width:52px;text-align:right;flex-shrink:0;color:var(--ink-3)}
+.amt.on{color:var(--mint);font-weight:500}
+
+/* ---- 도장 (시그니처) ---- */
+.seal{
+  width:40px;height:40px;flex-shrink:0;border-radius:50%;
+  border:2.5px solid var(--seal);color:var(--seal);background:var(--seal-bg);
+  display:flex;align-items:center;justify-content:center;
+  font-family:var(--serif);font-weight:700;font-size:15px;
+  transform:rotate(-9deg);opacity:.92
+}
+.seal.empty{border:1px dashed var(--rule);background:transparent;color:transparent;transform:none}
+@keyframes stamp{
+  0%{transform:rotate(-9deg) scale(2.1);opacity:0}
+  55%{transform:rotate(-9deg) scale(.88);opacity:1}
+  100%{transform:rotate(-9deg) scale(1);opacity:.92}
+}
+.seal.hit{animation:stamp .34s cubic-bezier(.2,.8,.3,1)}
+
+/* ---- 합계 ---- */
+.total{
+  display:flex;align-items:baseline;justify-content:space-between;
+  margin-top:16px;padding-top:14px;border-top:1px solid var(--ink);
+  border-bottom:1px solid var(--rule);padding-bottom:14px
+}
+.total span{font-size:14px;color:var(--ink-2)}
+.total b{font-family:var(--mono);font-size:28px;font-weight:500;font-variant-numeric:tabular-nums}
+
+/* ---- 통장 ---- */
+.book{
+  background:var(--card);border:1px solid var(--rule);border-radius:12px;
+  padding:20px 18px 18px;margin-bottom:14px;position:relative;overflow:hidden
+}
+.book::before{
+  content:"";position:absolute;inset:0;pointer-events:none;
+  background:repeating-linear-gradient(115deg,var(--rule) 0 1px,transparent 1px 9px);opacity:.13
+}
+.book>*{position:relative}
+.book .lbl{font-family:var(--serif);font-size:13px;letter-spacing:.18em;color:var(--ink-2)}
+.book .who{font-size:13px;color:var(--ink-3);margin-top:2px}
+.book .bal{font-family:var(--mono);font-size:38px;font-weight:500;line-height:1.15;margin-top:10px;font-variant-numeric:tabular-nums}
+.book .rule2{border-top:3px double var(--ink);margin-top:12px}
+.mm{display:flex;gap:20px;margin-top:12px;font-size:13px;color:var(--ink-2)}
+.mm b{font-family:var(--mono);font-weight:500;color:var(--ink)}
+
+.ledger{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:13px;font-variant-numeric:tabular-nums}
+.ledger td{padding:11px 0;border-bottom:1px solid var(--rule-2);vertical-align:top}
+.ledger .d{color:var(--ink-3);width:46px}
+.ledger .m{font-family:var(--sans);font-size:14px}
+.ledger .v{text-align:right;width:72px;white-space:nowrap}
+.ledger .v.plus{color:var(--mint)}
+.ledger .b{text-align:right;width:66px;color:var(--ink-3);font-size:12px}
+
+.goal{background:var(--card-2);border-radius:10px;padding:12px 14px;margin-top:14px}
+.goal .row{display:flex;justify-content:space-between;font-size:13px;margin-bottom:8px}
+.goal .row b{font-family:var(--mono);font-weight:500}
+.bar{height:7px;background:var(--rule);border-radius:4px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--mint);border-radius:4px}
+
+/* ---- 달력 ---- */
+.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px}
+.mcard{background:var(--card);border:1px solid var(--rule-2);border-radius:10px;padding:10px 11px}
+.mcard s{display:block;text-decoration:none;font-size:11px;color:var(--ink-3)}
+.mcard b{font-family:var(--mono);font-size:18px;font-weight:500;font-variant-numeric:tabular-nums}
+.dow{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:5px}
+.dow div{text-align:center;font-size:11px;color:var(--ink-3)}
+.grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.cell{border-radius:7px;min-height:46px;padding:5px 5px 6px;border:1px solid var(--rule-2);background:var(--card)}
+.cell u{display:block;text-decoration:none;font-size:10px;color:var(--ink-3);font-family:var(--mono)}
+.cell s{display:block;text-decoration:none;text-align:right;font-family:var(--mono);font-size:11px;font-weight:500;margin-top:3px}
+.cell.today{border:2px solid var(--seal)}
+.cell.blank{border:none;background:none}
+.cell.fut u{color:var(--rule)}
+.legend{display:flex;align-items:center;gap:6px;margin-top:10px;font-size:11px;color:var(--ink-3)}
+.legend i{width:14px;height:14px;border-radius:4px;border:1px solid var(--rule-2)}
+.yr{display:grid;grid-template-columns:repeat(12,1fr);gap:4px;align-items:end;height:56px;margin-top:12px}
+.yr i{background:var(--mint);border-radius:3px;display:block;opacity:.75}
+.yrl{display:grid;grid-template-columns:repeat(12,1fr);gap:4px;margin-top:4px}
+.yrl div{text-align:center;font-size:10px;color:var(--ink-3);font-family:var(--mono)}
+
+/* ---- 공통 ---- */
+h2.sec{font-family:var(--serif);font-size:17px;font-weight:700;margin:22px 0 10px}
+.btn{
+  display:block;width:100%;padding:13px;border-radius:10px;border:1px solid var(--ink);
+  background:transparent;font-size:15px;text-align:center;margin-top:10px
+}
+.btn.fill{background:var(--ink);color:var(--paper)}
+.btn.quiet{border-color:var(--rule);color:var(--ink-2)}
+.btn:active{transform:scale(.99)}
+.field{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.field label{font-size:13px;color:var(--ink-2);width:64px;flex-shrink:0}
+input[type=text],input[type=number]{
+  flex:1;min-width:0;padding:10px 12px;border:1px solid var(--rule);border-radius:9px;
+  background:var(--card);font-size:15px
+}
+input[type=number]{font-family:var(--mono);text-align:right}
+.hint{font-size:12px;color:var(--ink-3);line-height:1.6;margin:8px 0 0}
+.empty{text-align:center;color:var(--ink-3);font-size:14px;padding:36px 12px}
+
+.trow{display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--rule-2);
+  border-radius:10px;padding:8px 10px;margin-bottom:6px}
+.trow .e{width:24px;text-align:center;font-size:18px}
+.trow .n{flex:1;min-width:0;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.trow .p{font-family:var(--mono);font-size:12px;color:var(--ink-3);white-space:nowrap}
+.del{width:30px;height:30px;border-radius:8px;color:var(--ink-3);font-size:17px;flex-shrink:0}
+
+/* ---- 모달 ---- */
+.veil{position:fixed;inset:0;background:rgba(28,38,32,.42);display:flex;align-items:flex-end;
+  justify-content:center;z-index:50;padding:0}
+.sheet{background:var(--paper);width:100%;max-width:480px;border-radius:18px 18px 0 0;
+  padding:20px 18px calc(20px + env(safe-area-inset-bottom));animation:up .22s ease-out}
+@keyframes up{from{transform:translateY(24px);opacity:.4}to{transform:none;opacity:1}}
+.sheet h3{font-family:var(--serif);font-size:18px;margin:0 0 14px}
+
+/* ---- 하단 탭 ---- */
+nav{position:fixed;left:0;right:0;bottom:0;background:var(--paper);border-top:1px solid var(--rule);
+  padding-bottom:env(safe-area-inset-bottom);z-index:40}
+nav .in{max-width:480px;margin:0 auto;display:grid;grid-template-columns:repeat(4,1fr)}
+nav button{padding:11px 0 13px;font-size:12px;color:var(--ink-3);text-align:center}
+nav button .g{display:block;font-family:var(--serif);font-size:17px;line-height:1.5}
+nav button[aria-current="page"]{color:var(--seal)}
+
+/* ---- 설치 안내 ---- */
+#install{display:none;align-items:center;gap:10px;background:var(--card);
+  border:1px solid var(--seal);border-radius:12px;padding:12px 14px;margin:14px 0 0}
+#install p{margin:0;flex:1;font-size:13px;line-height:1.5;color:var(--ink-2)}
+#install b{color:var(--ink)}
+#install button{width:28px;height:28px;border-radius:8px;color:var(--ink-3);font-size:18px;flex-shrink:0}
+
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div id="app"><div class="empty">불러오는 중…</div></div>
+<div style="max-width:480px;margin:0 auto;padding:0 16px">
+  <div id="install"><p id="installtxt"></p><button data-hideinstall="1" aria-label="닫기">×</button></div>
+</div>
+<nav><div class="in">
+  <button data-tab="today" aria-current="page"><span class="g">今</span>오늘</button>
+  <button data-tab="book"><span class="g">通</span>통장</button>
+  <button data-tab="cal"><span class="g">曆</span>달력</button>
+  <button data-tab="set"><span class="g">設</span>설정</button>
+</div></nav>
+
+<script>
+"use strict";
+
+/* ============ 저장소 (교체 지점) ============ */
+var KEY = "yongdon:v1", mem = {};
+var Store = {
+  async load(){
+    if (window.storage) { try { var r = await window.storage.get(KEY); return r ? JSON.parse(r.value) : null; } catch(e){ return null; } }
+    try { var v = localStorage.getItem(KEY); return v ? JSON.parse(v) : null; } catch(e){ return mem[KEY] || null; }
+  },
+  async save(data){
+    var s = JSON.stringify(data);
+    if (window.storage) { try { await window.storage.set(KEY, s); return; } catch(e){} }
+    try { localStorage.setItem(KEY, s); } catch(e){ mem[KEY] = data; }
+  }
+};
+
+/* ============ 유틸 ============ */
+function uid(){ return Math.random().toString(36).slice(2,9); }
+function ymd(d){ return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); }
+function won(n){ return n.toLocaleString("ko-KR"); }
+function esc(s){ return String(s).replace(/[&<>"]/g, function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]; }); }
+var DOW = ["일","월","화","수","목","금","토"];
+
+/* ============ 상태 ============ */
+var S = null, cur = null, day = ymd(new Date()), tab = "today", calM = new Date();
+
+function seed(){
+  var a = uid(), b = uid();
+  var def = [
+    ["한글 책읽기","📖",500,4],["영어 책읽기","🔤",500,4],
+    ["수학 1쪽","➗",500,1],["영어 말하기 5분","🗣",500,1]
+  ];
+  var tasks = [];
+  [a,b].forEach(function(cid){
+    def.forEach(function(t){ tasks.push({id:uid(),childId:cid,emo:t[1],name:t[0],price:t[2],cap:t[3]}); });
+  });
+  return {
+    v:1,
+    children:[{id:a,name:"첫째"},{id:b,name:"둘째"}],
+    tasks:tasks, entries:{}, payments:[], goals:{}
+  };
+}
+
+function tasksOf(cid){ return S.tasks.filter(function(t){ return t.childId===cid; }); }
+function entry(cid,d){ return (S.entries[cid]||{})[d] || {counts:{},amount:0}; }
+function setEntry(cid,d,e){
+  if(!S.entries[cid]) S.entries[cid]={};
+  if(e.amount===0 && !Object.keys(e.counts).length) delete S.entries[cid][d];
+  else S.entries[cid][d]=e;
+}
+function recalc(cid,d){
+  var e = entry(cid,d), sum = 0;
+  tasksOf(cid).forEach(function(t){ sum += (e.counts[t.id]||0) * t.price; });
+  e.amount = sum; setEntry(cid,d,e);
+}
+function balance(cid){
+  var s = 0, es = S.entries[cid]||{};
+  for (var d in es) s += es[d].amount;
+  S.payments.forEach(function(p){ if(p.childId===cid) s -= p.amount; });
+  return s;
+}
+function save(){ Store.save(S); }
+
+/* ============ 화면: 오늘 ============ */
+function viewToday(){
+  var ts = tasksOf(cur), e = entry(cur,day);
+  var d = new Date(day+"T00:00:00");
+  var isToday = day === ymd(new Date());
+  var h = kidBar();
+
+  h += '<div class="datenav">'
+    + '<button class="arrow" data-move="-1" aria-label="이전 날">‹</button>'
+    + '<div style="text-align:center"><b>'+(d.getMonth()+1)+'월 '+d.getDate()+'일 '+DOW[d.getDay()]+'요일</b>'
+    + '<small>'+(isToday?"오늘":"지난 날 기록 중")+'</small></div>'
+    + '<button class="arrow" data-move="1" '+(isToday?"disabled":"")+' aria-label="다음 날">›</button></div>';
+
+  if(!ts.length){
+    h += '<div class="empty">할 일이 아직 없어요.<br>설정에서 먼저 만들어 주세요.</div>';
+  } else {
+    ts.forEach(function(t){
+      var n = e.counts[t.id]||0, amt = n*t.price, full = n>=t.cap;
+      h += '<div class="task'+(n?" done":"")+'">'
+        + '<span class="emo">'+esc(t.emo||"")+'</span>'
+        + '<div class="body"><div class="nm">'+esc(t.name)+'</div>'
+        + '<div class="sub">'+won(t.price)+'원'+(t.cap>1?" · 하루 "+t.cap+"개까지":"")+'</div></div>'
+        + '<div class="count">'
+        + '<button class="step" data-inc="'+t.id+'" data-v="-1" '+(n<=0?"disabled":"")+' aria-label="'+esc(t.name)+' 빼기">－</button>'
+        + '<span class="num">'+n+'</span>'
+        + '<button class="step" data-inc="'+t.id+'" data-v="1" '+(full?"disabled":"")+' aria-label="'+esc(t.name)+' 더하기">＋</button>'
+        + '</div>'
+        + '<span class="amt'+(n?" on":"")+'">'+(n?won(amt):"—")+'</span>'
+        + '<span class="seal'+(n?"":" empty")+'" data-seal="'+t.id+'" aria-hidden="true">'+(n?(full?"完":n):"")+'</span>'
+        + '</div>';
+    });
+    h += '<div class="total"><span>이 날 적립</span><b>'+won(e.amount)+'원</b></div>';
+    h += '<p class="hint">다 못 한 항목은 그냥 비워 두면 돼요. 빠진 만큼 깎이지 않아요.</p>';
+  }
+  return h;
+}
+
+/* ============ 화면: 통장 ============ */
+function viewBook(){
+  var kid = S.children.find(function(c){ return c.id===cur; });
+  var bal = balance(cur), now = new Date();
+  var mk = now.getFullYear()+"-"+String(now.getMonth()+1).padStart(2,"0");
+  var earned = 0, spent = 0, es = S.entries[cur]||{};
+  for (var d in es) if(d.indexOf(mk)===0) earned += es[d].amount;
+  S.payments.forEach(function(p){ if(p.childId===cur && p.date.indexOf(mk)===0) spent += p.amount; });
+
+  var h = kidBar();
+  h += '<div class="book"><div class="lbl">용돈통장</div>'
+    + '<div class="who">'+esc(kid?kid.name:"")+'</div>'
+    + '<div class="bal">'+won(bal)+'<span style="font-size:20px"> 원</span></div>'
+    + '<div class="rule2"></div>'
+    + '<div class="mm"><span>이번 달 번 돈 <b>'+won(earned)+'</b></span>'
+    + '<span>쓴 돈 <b>'+won(spent)+'</b></span></div></div>';
+
+  var g = S.goals[cur];
+  if(g && g.target>0){
+    var pct = Math.min(100, Math.round(bal/g.target*100));
+    h += '<div class="goal"><div class="row"><span>🎯 '+esc(g.name)+'</span>'
+      + '<b>'+won(Math.max(0,bal))+' / '+won(g.target)+'</b></div>'
+      + '<div class="bar"><i style="width:'+pct+'%"></i></div>'
+      + '<p class="hint" style="margin-top:8px">'+(pct>=100?"목표를 다 모았어요!":(won(g.target-bal)+"원 더 모으면 돼요"))+'</p></div>';
+  }
+
+  h += '<button class="btn fill" data-pay="1">결제하기</button>';
+
+  var rows = [];
+  for (var dd in es) rows.push({date:dd, memo:"할 일 적립", amt:es[dd].amount, plus:true});
+  S.payments.forEach(function(p){ if(p.childId===cur) rows.push({date:p.date, memo:p.memo||"결제", amt:-p.amount, plus:false, id:p.id}); });
+  rows.sort(function(a,b){ return a.date<b.date?-1:a.date>b.date?1:0; });
+  var run = 0; rows.forEach(function(r){ run += r.amt; r.bal = run; });
+  rows.reverse();
+
+  h += '<h2 class="sec">거래 내역</h2>';
+  if(!rows.length){ h += '<div class="empty">아직 내역이 없어요.<br>오늘 화면에서 할 일을 채워 보세요.</div>'; }
+  else {
+    h += '<table class="ledger"><tbody>';
+    rows.slice(0,60).forEach(function(r){
+      var md = r.date.slice(5).replace("-","/");
+      h += '<tr><td class="d">'+md+'</td><td class="m">'+esc(r.memo)+'</td>'
+        + '<td class="v'+(r.plus?" plus":"")+'">'+(r.plus?"+":"−")+won(Math.abs(r.amt))+'</td>'
+        + '<td class="b">'+won(r.bal)+'</td></tr>';
+    });
+    h += '</tbody></table>';
+  }
+  return h;
+}
+
+/* ============ 화면: 달력 ============ */
+function viewCal(){
+  var y = calM.getFullYear(), m = calM.getMonth();
+  var es = S.entries[cur]||{}, pre = y+"-"+String(m+1).padStart(2,"0");
+  var days = [], earned = 0, did = 0, max = 1;
+  for (var d in es) if(d.indexOf(pre)===0){ earned += es[d].amount; if(es[d].amount>0) did++; max = Math.max(max, es[d].amount); }
+
+  var cnt = 0;
+  for (var dk in es) if(dk.indexOf(pre)===0){
+    var c = es[dk].counts;
+    tasksOf(cur).forEach(function(t){ if(t.cap>1) cnt += (c[t.id]||0); });
+  }
+
+  var h = kidBar();
+  h += '<div class="datenav">'
+    + '<button class="arrow" data-mon="-1" aria-label="이전 달">‹</button>'
+    + '<b>'+y+'년 '+(m+1)+'월</b>'
+    + '<button class="arrow" data-mon="1" aria-label="다음 달">›</button></div>';
+
+  h += '<div class="cards">'
+    + '<div class="mcard"><s>번 돈</s><b>'+won(earned)+'</b></div>'
+    + '<div class="mcard"><s>해낸 날</s><b>'+did+'일</b></div>'
+    + '<div class="mcard"><s>읽은 책</s><b>'+cnt+'권</b></div></div>';
+
+  h += '<div class="dow">'+DOW.map(function(x){ return "<div>"+x+"</div>"; }).join("")+'</div><div class="grid">';
+  var first = new Date(y,m,1).getDay(), last = new Date(y,m+1,0).getDate(), today = ymd(new Date());
+  for (var i=0;i<first;i++) h += '<div class="cell blank"></div>';
+  for (var dd=1; dd<=last; dd++){
+    var key = y+"-"+String(m+1).padStart(2,"0")+"-"+String(dd).padStart(2,"0");
+    var amt = es[key] ? es[key].amount : 0, fut = key>today;
+    var op = amt>0 ? (0.14 + 0.4*(amt/max)) : 0;
+    var st = amt>0 ? 'background:rgba(42,122,87,'+op.toFixed(2)+');border-color:transparent;' : '';
+    h += '<div class="cell'+(key===today?" today":"")+(fut?" fut":"")+'" style="'+st+'">'
+      + '<u>'+dd+'</u><s>'+(amt>0?won(amt):"")+'</s></div>';
+  }
+  h += '</div><div class="legend"><span>적게</span><i></i>'
+    + '<i style="background:rgba(42,122,87,.2);border-color:transparent"></i>'
+    + '<i style="background:rgba(42,122,87,.36);border-color:transparent"></i>'
+    + '<i style="background:rgba(42,122,87,.54);border-color:transparent"></i><span>많이</span></div>';
+
+  var mo = new Array(12).fill(0), yTot = 0, yCnt = 0;
+  for (var k in es){
+    if(k.indexOf(y+"-")===0){
+      var mi = parseInt(k.slice(5,7),10)-1;
+      mo[mi] += es[k].amount; yTot += es[k].amount;
+      var cc = es[k].counts;
+      tasksOf(cur).forEach(function(t){ if(t.cap>1) yCnt += (cc[t.id]||0); });
+    }
+  }
+  var mmax = Math.max.apply(null, mo) || 1;
+  h += '<h2 class="sec">'+y+'년 전체</h2>';
+  h += '<p class="hint" style="margin:0">지금까지 '+won(yTot)+'원 · 책 '+yCnt+'권</p>';
+  h += '<div class="yr">'+mo.map(function(v){
+    return '<i style="height:'+(v>0?Math.max(4,Math.round(v/mmax*54)):3)+'px'+(v>0?"":";background:var(--rule)")+'"></i>';
+  }).join("")+'</div>';
+  h += '<div class="yrl">'+mo.map(function(_,i){ return "<div>"+(i+1)+"</div>"; }).join("")+'</div>';
+  return h;
+}
+
+/* ============ 화면: 설정 ============ */
+function viewSet(){
+  var h = kidBar();
+  var kid = S.children.find(function(c){ return c.id===cur; });
+  h += '<h2 class="sec">아이</h2>';
+  h += '<div class="field"><label>이름</label><input type="text" id="kidname" value="'+esc(kid?kid.name:"")+'" maxlength="10"></div>';
+  h += '<button class="btn quiet" data-addkid="1">아이 추가</button>';
+  if(S.children.length>1) h += '<button class="btn quiet" data-delkid="1">이 아이 지우기</button>';
+
+  h += '<h2 class="sec">할 일과 금액</h2>';
+  tasksOf(cur).forEach(function(t){
+    h += '<div class="trow"><span class="e">'+esc(t.emo||"")+'</span>'
+      + '<span class="n">'+esc(t.name)+'</span>'
+      + '<span class="p">'+won(t.price)+'원 ×'+t.cap+'</span>'
+      + '<button class="del" data-deltask="'+t.id+'" aria-label="'+esc(t.name)+' 지우기">×</button></div>';
+  });
+  h += '<div class="field"><label>새 항목</label><input type="text" id="tname" placeholder="예: 줄넘기 100개"></div>'
+    + '<div class="field"><label>그림</label><input type="text" id="temo" placeholder="📖" maxlength="2" style="max-width:80px">'
+    + '<label style="width:auto">금액</label><input type="number" id="tprice" value="500" min="0" step="100">'
+    + '<label style="width:auto">최대</label><input type="number" id="tcap" value="1" min="1" max="20" style="max-width:70px"></div>'
+    + '<button class="btn" data-addtask="1">항목 추가</button>';
+
+  var g = S.goals[cur]||{name:"",target:0};
+  h += '<h2 class="sec">모으고 싶은 것</h2>'
+    + '<div class="field"><label>이름</label><input type="text" id="gname" value="'+esc(g.name)+'" placeholder="예: 레고 세트"></div>'
+    + '<div class="field"><label>목표액</label><input type="number" id="gtarget" value="'+(g.target||"")+'" min="0" step="1000"></div>'
+    + '<button class="btn quiet" data-goal="1">목표 저장</button>';
+
+  h += '<h2 class="sec">백업</h2>'
+    + '<p class="hint" style="margin-bottom:10px">브라우저 기록을 지우면 통장도 함께 사라져요. 한 달에 한 번은 파일로 내려받아 두세요.</p>'
+    + '<button class="btn fill" data-backup="1">백업 파일 내려받기</button>'
+    + (navigator.share ? '<button class="btn quiet" data-share="1">드라이브 등으로 보내기</button>' : '')
+    + '<button class="btn quiet" data-restore="1">백업에서 되돌리기</button>'
+    + '<input type="file" id="rfile" accept="application/json,.json" style="display:none">';
+
+  h += '<h2 class="sec">앱 설치</h2>'
+    + '<p class="hint" id="persist" style="margin-bottom:10px">저장 상태를 확인하는 중…</p>'
+    + (deferredPrompt ? '<button class="btn fill" data-install="1">홈 화면에 설치하기</button>'
+       : '<p class="hint">이미 설치했거나, 브라우저 메뉴에서 <b>홈 화면에 추가</b>를 눌러 설치할 수 있어요.</p>');
+  return h;
+}
+
+/* ============ 공통 ============ */
+function kidBar(){
+  if(S.children.length<2) return "";
+  return '<div class="top"><div class="kids">'+S.children.map(function(c){
+    return '<button class="kid" data-kid="'+c.id+'" aria-pressed="'+(c.id===cur)+'">'+esc(c.name)+'</button>';
+  }).join("")+'</div></div>';
+}
+
+function render(){
+  var el = document.getElementById("app");
+  el.innerHTML = tab==="today" ? viewToday() : tab==="book" ? viewBook() : tab==="cal" ? viewCal() : viewSet();
+  document.querySelectorAll("nav button").forEach(function(b){
+    if(b.dataset.tab===tab) b.setAttribute("aria-current","page"); else b.removeAttribute("aria-current");
+  });
+  if(tab==="set" && typeof paintPersist === "function") paintPersist();
+}
+
+function sheet(title, inner){
+  var v = document.createElement("div");
+  v.className = "veil";
+  v.innerHTML = '<div class="sheet"><h3>'+title+'</h3>'+inner+'</div>';
+  v.addEventListener("click", function(ev){ if(ev.target===v) v.remove(); });
+  document.body.appendChild(v);
+  return v;
+}
+
+/* ============ 이벤트 ============ */
+document.addEventListener("click", function(ev){
+  var t = ev.target.closest("[data-tab],[data-kid],[data-inc],[data-move],[data-mon],[data-pay],[data-addkid],[data-delkid],[data-addtask],[data-deltask],[data-goal],[data-backup],[data-share],[data-restore],[data-paydo],[data-close],[data-install],[data-hideinstall]");
+  if(!t) return;
+  var ds = t.dataset;
+
+  if(ds.hideinstall){ try{ sessionStorage.setItem("hideinstall","1"); }catch(e){} hideBanner(); return; }
+  if(ds.install){
+    if(!deferredPrompt) return;
+    deferredPrompt.prompt();
+    deferredPrompt.userChoice.then(function(){ deferredPrompt = null; hideBanner(); render(); });
+    return;
+  }
+
+  if(ds.tab){ tab = ds.tab; if(tab==="cal") calM = new Date(); render(); return; }
+  if(ds.kid){ cur = ds.kid; render(); return; }
+
+  if(ds.inc){
+    var v = parseInt(ds.v,10), task = S.tasks.find(function(x){ return x.id===ds.inc; });
+    var e = entry(cur,day), n = (e.counts[task.id]||0) + v;
+    if(n<0 || n>task.cap) return;
+    if(n===0) delete e.counts[task.id]; else e.counts[task.id]=n;
+    setEntry(cur,day,e); recalc(cur,day); save(); render();
+    if(v>0){
+      var s = document.querySelector('[data-seal="'+task.id+'"]');
+      if(s){ s.classList.add("hit"); }
+    }
+    return;
+  }
+
+  if(ds.move){
+    var d = new Date(day+"T00:00:00");
+    d.setDate(d.getDate()+parseInt(ds.move,10));
+    if(ymd(d) > ymd(new Date())) return;
+    day = ymd(d); render(); return;
+  }
+  if(ds.mon){ calM.setMonth(calM.getMonth()+parseInt(ds.mon,10)); render(); return; }
+
+  if(ds.pay){
+    var bal = balance(cur);
+    var v2 = sheet("결제하기",
+      '<p class="hint" style="margin:0 0 12px">지금 잔액 '+won(bal)+'원</p>'
+      + '<div class="field"><label>무엇에</label><input type="text" id="pmemo" placeholder="예: 문구점 스티커"></div>'
+      + '<div class="field"><label>얼마</label><input type="number" id="pamt" min="0" step="100" placeholder="0"></div>'
+      + '<button class="btn fill" data-paydo="1">통장에서 빼기</button>'
+      + '<button class="btn quiet" data-close="1">그만두기</button>');
+    setTimeout(function(){ var i = v2.querySelector("#pamt"); if(i) i.focus(); }, 60);
+    return;
+  }
+  if(ds.paydo){
+    var amt = parseInt(document.getElementById("pamt").value,10);
+    if(!amt || amt<=0){ alert("금액을 넣어 주세요."); return; }
+    S.payments.push({id:uid(), childId:cur, date:ymd(new Date()),
+      memo:document.getElementById("pmemo").value.trim()||"결제", amount:amt});
+    save(); document.querySelector(".veil").remove(); render(); return;
+  }
+  if(ds.close){ var v3=document.querySelector(".veil"); if(v3) v3.remove(); return; }
+
+  if(ds.addkid){
+    var nm = prompt("아이 이름");
+    if(!nm) return;
+    var id = uid();
+    S.children.push({id:id,name:nm.trim()});
+    tasksOf(cur).forEach(function(x){ S.tasks.push({id:uid(),childId:id,emo:x.emo,name:x.name,price:x.price,cap:x.cap}); });
+    cur = id; save(); render(); return;
+  }
+  if(ds.delkid){
+    if(!confirm("이 아이의 기록이 모두 사라져요. 계속할까요?")) return;
+    S.children = S.children.filter(function(c){ return c.id!==cur; });
+    S.tasks = S.tasks.filter(function(x){ return x.childId!==cur; });
+    delete S.entries[cur]; delete S.goals[cur];
+    S.payments = S.payments.filter(function(p){ return p.childId!==cur; });
+    cur = S.children[0].id; save(); render(); return;
+  }
+
+  if(ds.addtask){
+    var nm2 = document.getElementById("tname").value.trim();
+    if(!nm2){ alert("항목 이름을 넣어 주세요."); return; }
+    S.tasks.push({id:uid(), childId:cur, emo:document.getElementById("temo").value.trim(),
+      name:nm2, price:Math.max(0,parseInt(document.getElementById("tprice").value,10)||0),
+      cap:Math.max(1,parseInt(document.getElementById("tcap").value,10)||1)});
+    save(); render(); return;
+  }
+  if(ds.deltask){
+    if(!confirm("이 항목을 지울까요? 지난 기록의 금액은 그대로 남아요.")) return;
+    S.tasks = S.tasks.filter(function(x){ return x.id!==ds.deltask; });
+    save(); render(); return;
+  }
+  if(ds.goal){
+    S.goals[cur] = {name:document.getElementById("gname").value.trim(),
+      target:Math.max(0,parseInt(document.getElementById("gtarget").value,10)||0)};
+    save(); tab="book"; render(); return;
+  }
+
+  if(ds.backup){
+    var blob = new Blob([JSON.stringify(S,null,2)],{type:"application/json"});
+    var a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "용돈통장_"+ymd(new Date())+".json";
+    a.click(); setTimeout(function(){ URL.revokeObjectURL(a.href); },1000);
+    return;
+  }
+  if(ds.share){
+    var f = new File([JSON.stringify(S)],"용돈통장_"+ymd(new Date())+".json",{type:"application/json"});
+    if(navigator.canShare && navigator.canShare({files:[f]})) navigator.share({files:[f],title:"용돈통장 백업"});
+    else alert("이 기기에서는 파일 보내기를 쓸 수 없어요. 내려받기를 써 주세요.");
+    return;
+  }
+  if(ds.restore){ document.getElementById("rfile").click(); return; }
+});
+
+document.addEventListener("change", function(ev){
+  if(ev.target.id==="rfile"){
+    var f = ev.target.files[0]; if(!f) return;
+    var r = new FileReader();
+    r.onload = function(){
+      try{
+        var d = JSON.parse(r.result);
+        if(!d.children || !d.tasks) throw 0;
+        if(!confirm("지금 기록을 백업 파일로 덮어써요. 계속할까요?")) return;
+        S = d; cur = S.children[0].id; save(); render();
+      }catch(e){ alert("이 파일은 읽을 수 없어요."); }
+    };
+    r.readAsText(f);
+  }
+});
+
+document.addEventListener("input", function(ev){
+  if(ev.target.id==="kidname"){
+    var k = S.children.find(function(c){ return c.id===cur; });
+    if(k){ k.name = ev.target.value; save(); }
+  }
+});
+
+/* ============ 설치 / 오프라인 ============ */
+var deferredPrompt = null;
+
+function standalone(){
+  return window.matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
+}
+
+window.addEventListener("beforeinstallprompt", function(ev){
+  ev.preventDefault();
+  deferredPrompt = ev;
+  showBanner("<b>홈 화면에 설치하면</b> 앱처럼 열리고 인터넷 없이도 써요. 설정 맨 아래에서 설치할 수 있어요.");
+  if(tab==="set") render();
+});
+
+window.addEventListener("appinstalled", function(){
+  deferredPrompt = null;
+  hideBanner();
+});
+
+function showBanner(msg){
+  if(standalone() || sessionStorage.getItem("hideinstall")) return;
+  var el = document.getElementById("install");
+  document.getElementById("installtxt").innerHTML = msg;
+  el.style.display = "flex";
+}
+function hideBanner(){
+  var el = document.getElementById("install");
+  if(el) el.style.display = "none";
+}
+
+/* iOS는 설치 프롬프트가 없어서 방법을 직접 알려 줍니다 */
+function iosHint(){
+  var ua = navigator.userAgent;
+  var isIOS = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  if(isIOS && !standalone()){
+    showBanner("<b>공유 버튼 → 홈 화면에 추가</b>를 누르면 앱처럼 쓸 수 있어요.");
+  }
+}
+
+/* 브라우저가 저장 공간을 함부로 비우지 않도록 요청 */
+async function askPersist(){
+  if(!navigator.storage || !navigator.storage.persist) return null;
+  try{
+    if(await navigator.storage.persisted()) return true;
+    return await navigator.storage.persist();
+  }catch(e){ return null; }
+}
+
+async function paintPersist(){
+  var el = document.getElementById("persist");
+  if(!el) return;
+  var ok = await askPersist();
+  el.innerHTML = ok === true
+    ? "이 기기에 안전하게 저장되고 있어요. 그래도 백업은 한 달에 한 번 해 두세요."
+    : "브라우저가 저장 공간을 비우면 기록이 사라질 수 있어요. 백업을 꼭 해 두세요.";
+}
+
+if("serviceWorker" in navigator){
+  window.addEventListener("load", function(){
+    navigator.serviceWorker.register("./sw.js").catch(function(){});
+  });
+}
+
+/* ============ 시작 ============ */
+(async function(){
+  S = await Store.load();
+  if(!S || !S.children || !S.children.length) { S = seed(); await Store.save(S); }
+  cur = S.children[0].id;
+  render();
+  askPersist();
+  iosHint();
+})();
+</script>
+</body>
+</html>
