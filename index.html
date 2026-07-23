@@ -186,7 +186,8 @@ input[type=number]{font-family:var(--mono);text-align:right}
 .veil{position:fixed;inset:0;background:rgba(28,38,32,.42);display:flex;align-items:flex-end;
   justify-content:center;z-index:50;padding:0}
 .sheet{background:var(--paper);width:100%;max-width:480px;border-radius:18px 18px 0 0;
-  padding:20px 18px calc(20px + env(safe-area-inset-bottom));animation:up .22s ease-out}
+  padding:20px 18px calc(20px + env(safe-area-inset-bottom));animation:up .22s ease-out;
+  max-height:85vh;overflow-y:auto;-webkit-overflow-scrolling:touch}
 @keyframes up{from{transform:translateY(24px);opacity:.4}to{transform:none;opacity:1}}
 .sheet h3{font-family:var(--serif);font-size:18px;margin:0 0 14px}
 
