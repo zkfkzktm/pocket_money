@@ -1,5 +1,5 @@
 /* 용돈통장 서비스 워커 — 앱을 고칠 때마다 아래 버전을 올리세요 */
-const VERSION = "v3";
+const VERSION = "v4";
 const SHELL = "shell-" + VERSION;
 const RUNTIME = "runtime-" + VERSION;
 

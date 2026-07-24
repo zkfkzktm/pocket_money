@@ -54,13 +54,15 @@ input,select{font:inherit;color:inherit}
 
 /* ---- 할 일 ---- */
 .task{
-  display:flex;align-items:center;gap:12px;background:var(--card);
+  display:flex;flex-direction:column;gap:10px;background:var(--card);
   border:1px solid var(--rule-2);border-radius:12px;padding:12px 14px;margin-bottom:8px
 }
+.task .row1{display:flex;align-items:center;gap:10px}
+.task .row2{display:flex;align-items:center;justify-content:space-between;gap:10px}
 .task .emo{font-size:20px;width:26px;text-align:center;flex-shrink:0}
 .task .body{flex:1;min-width:0}
-.task .nm{font-size:15px;line-height:1.3}
-.task .sub{font-size:12px;color:var(--ink-3);font-family:var(--mono)}
+.task .nm{font-size:15px;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.task .sub{font-size:12px;color:var(--ink-3);font-family:var(--mono);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .task.done .nm{color:var(--ink)}
 .count{display:flex;align-items:center;gap:2px;flex-shrink:0}
 .step{
@@ -85,8 +87,12 @@ input,select{font:inherit;color:inherit}
   font-family:var(--serif);font-weight:700;font-size:15px;
   transform:rotate(-9deg);opacity:.92
 }
-.seal.empty{border:1px dashed var(--rule);background:transparent;color:transparent;transform:none}
-.seal.full{font-size:8.5px;line-height:1.2;letter-spacing:-.2px;text-align:center}
+.seal.blank{border:1px dashed var(--rule);background:transparent;color:transparent;transform:none}
+.seal.full{
+  flex-direction:column;font-family:var(--sans);font-weight:700;
+  font-size:9.5px;line-height:1.25;letter-spacing:-.2px
+}
+.seal.full span{white-space:nowrap}
 @keyframes stamp{
   0%{transform:rotate(-9deg) scale(2.1);opacity:0}
   55%{transform:rotate(-9deg) scale(.88);opacity:1}
@@ -300,16 +306,20 @@ function dayEntryHTML(){
     ts.forEach(function(t){
       var n = e.counts[t.id]||0, amt = n*t.price, full = n>=t.cap;
       h += '<div class="task'+(n?" done":"")+'">'
+        + '<div class="row1">'
         + '<span class="emo">'+esc(t.emo||"")+'</span>'
         + '<div class="body"><div class="nm">'+esc(t.name)+'</div>'
         + '<div class="sub">'+won(t.price)+'원'+(t.cap>1?" · 하루 "+t.cap+"개까지":"")+'</div></div>'
+        + '<span class="seal'+(n?"":" blank")+(full?" full":"")+'" data-seal="'+t.id+'" aria-hidden="true">'+(n?(full?'<span>참잘</span><span>했어요</span>':n):"")+'</span>'
+        + '</div>'
+        + '<div class="row2">'
         + '<div class="count">'
         + '<button class="step" data-inc="'+t.id+'" data-v="-1" '+(n<=0?"disabled":"")+' aria-label="'+esc(t.name)+' 빼기">－</button>'
         + '<span class="num">'+n+'</span>'
         + '<button class="step" data-inc="'+t.id+'" data-v="1" '+(full?"disabled":"")+' aria-label="'+esc(t.name)+' 더하기">＋</button>'
         + '</div>'
         + '<span class="amt'+(n?" on":"")+'">'+(n?won(amt):"—")+'</span>'
-        + '<span class="seal'+(n?"":" empty")+(full?" full":"")+'" data-seal="'+t.id+'" aria-hidden="true">'+(n?(full?"참잘<br>했어요":n):"")+'</span>'
+        + '</div>'
         + '</div>';
     });
     h += '<div class="total"><span>이 날 적립</span><b>'+won(e.amount)+'원</b></div>';
