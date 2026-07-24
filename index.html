@@ -318,7 +318,7 @@ function dayEntryHTML(){
         + '<span class="num">'+n+'</span>'
         + '<button class="step" data-inc="'+t.id+'" data-v="1" '+(full?"disabled":"")+' aria-label="'+esc(t.name)+' 더하기">＋</button>'
         + '</div>'
-        + '<span class="amt'+(n?" on":"")+'">'+(n?won(amt):"—")+'</span>'
+        + '<span class="amt'+(n?" on":"")+'">'+won(amt)+'원</span>'
         + '</div>'
         + '</div>';
     });
